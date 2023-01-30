@@ -1,5 +1,6 @@
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 
 static HOST: &str = "127.0.0.1";
 const PORT: u16 = 8080;
@@ -36,10 +37,7 @@ async fn main() -> std::io::Result<()> {
 async fn get_soundcloud_urls() -> impl Responder {
     let urls = get_db_soundcloud_urls();
     let soundcloud_urls = SoundcloudUrls::from(urls);
-    return format!("{:?}", soundcloud_urls);
-    // let urls = SoundcloudUrls { urls };
-    // format!("{:?}", urls)
-    //
+    return serde_json::to_string(&soundcloud_urls).unwrap();
 }
 
 #[post("/soundcloud-url")]

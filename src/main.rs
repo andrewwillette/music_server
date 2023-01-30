@@ -1,6 +1,6 @@
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
 use serde::{Deserialize, Serialize};
-use serde_json::json;
+pub mod db;
 
 static HOST: &str = "127.0.0.1";
 const PORT: u16 = 8080;
@@ -41,7 +41,8 @@ async fn get_soundcloud_urls() -> impl Responder {
 }
 
 #[post("/soundcloud-url")]
-async fn add_soundcloud_url(_json: web::Json<SoundcloudUrl>) -> HttpResponse {
+async fn add_soundcloud_url(json: web::Json<SoundcloudUrl>) -> HttpResponse {
+    db::insert_soundcloud_url(&json.url);
     HttpResponse::Ok().finish()
 }
 
@@ -49,3 +50,5 @@ fn get_db_soundcloud_urls() -> Vec<String> {
     let soundcloud_urls = vec![String::from("hi"), String::from("goodbye")];
     return soundcloud_urls;
 }
+
+// #[test]

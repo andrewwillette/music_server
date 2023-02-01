@@ -1,7 +1,7 @@
 use rusqlite::{Connection, Result};
 
 #[derive(Debug)]
-struct SoundcloudUrl {
+pub struct SoundcloudUrl {
     id: i32,
     url: String,
 }
@@ -12,13 +12,17 @@ pub fn insert_soundcloud_url(url: &String) -> Result<()> {
         "CREATE TABLE soundcloudurl (
             id    INTEGER PRIMARY KEY,
             url   TEXT NOT NULL,
+            data  BLOB
         )",
         (), // empty list of parameters.
     )?;
-    let soundcloud_url = SoundcloudUrl { id: 0, url: *url };
+    let soundcloud_url = SoundcloudUrl {
+        id: 0,
+        url: url.to_string(),
+    };
     conn.execute(
         "INSERT INTO soundcloudurl (url) VALUES (?1)",
-        (&soundcloud_url.url),
+        (&soundcloud_url.url,),
     )?;
     return Ok(());
 }

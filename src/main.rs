@@ -50,5 +50,3 @@ fn get_db_soundcloud_urls() -> Vec<String> {
     let soundcloud_urls = vec![String::from("hi"), String::from("goodbye")];
     return soundcloud_urls;
 }
-
-// #[test]

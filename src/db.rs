@@ -10,7 +10,7 @@ pub struct DbContext<'a> {
 impl<'a> DbContext<'a> {
     pub fn new(conn: &'a Connection) -> Self {
         return DbContext {
-            conn: conn,
+            conn,
             insert_soundcloud_url_statement: None,
         };
     }
@@ -25,7 +25,7 @@ impl<'a> DbContext<'a> {
         self.insert_soundcloud_url_statement
             .as_mut()
             .unwrap()
-            .execute_named(&[(":url", &url)])?;
+            .execute(&[(":url", &url)])?;
         return Ok(self.conn.last_insert_rowid());
     }
 }
@@ -118,5 +118,11 @@ mod tests {
         assert_eq!(insert_soundcloud_url(&url), Ok(()));
         let soundcloud_urls = get_soundcloud_urls().unwrap();
         print!("{:?}\n", soundcloud_urls);
+    }
+
+    #[test]
+    fn test_db_context() {
+        let conn = Connection::open(DB_PATH).unwrap();
+        let db_context = DbContext::new(&conn);
     }
 }

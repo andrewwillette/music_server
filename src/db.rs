@@ -5,6 +5,7 @@ const DB_PATH: &str = "./music_server.db";
 pub struct DbContext<'a> {
     pub conn: &'a Connection,
     pub insert_soundcloud_url_statement: Option<Statement<'a>>,
+    pub get_soudncloud_urls_statement: Option<Statement<'a>>,
 }
 
 impl<'a> DbContext<'a> {
@@ -12,7 +13,26 @@ impl<'a> DbContext<'a> {
         return DbContext {
             conn,
             insert_soundcloud_url_statement: None,
+            get_soudncloud_urls_statement: None,
         };
+    }
+
+    pub fn init_soundcloud_db(&mut self) -> Result<()> {
+        const SOUNDCLOUD_URL_TABLE_EXISTS_QUERY: &str =
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='soundcloudurl';";
+        const CREATE_SOUNDCLOUD_URL_TABLE_QUERY: &str = "CREATE TABLE soundcloudurl (
+        id    INTEGER PRIMARY KEY,
+        url   TEXT NOT NULL,
+        data  BLOB)";
+        let stmt = Some(self.conn.prepare(SOUNDCLOUD_URL_TABLE_EXISTS_QUERY)?);
+        let row: Result<String> = stmt.unwrap().query_row([], |row| return row.get(0));
+        match row {
+            Ok(_) => {}
+            Err(_) => {
+                self.conn.execute(CREATE_SOUNDCLOUD_URL_TABLE_QUERY, ())?;
+            }
+        }
+        return Ok(());
     }
 
     pub fn insert_soundcloud_url(&mut self, url: &String) -> Result<i64> {
@@ -28,6 +48,28 @@ impl<'a> DbContext<'a> {
             .execute(&[(":url", &url)])?;
         return Ok(self.conn.last_insert_rowid());
     }
+
+    pub fn get_soundcloud_urls(&mut self) -> Result<Vec<SoundcloudUrl>> {
+        if let None = &self.get_soudncloud_urls_statement {
+            let stmt = self.conn.prepare("SELECT id, url FROM soundcloudurl")?;
+            self.get_soudncloud_urls_statement = Some(stmt);
+        };
+        let soundcloud_url_iter = self
+            .get_soudncloud_urls_statement
+            .as_mut()
+            .unwrap()
+            .query_map([], |row| {
+                Ok(SoundcloudUrl {
+                    id: row.get(0)?,
+                    url: row.get(1)?,
+                })
+            })?;
+        let mut soundcloud_urls = Vec::new();
+        for soundcloud_url in soundcloud_url_iter {
+            soundcloud_urls.push(soundcloud_url?);
+        }
+        Ok(soundcloud_urls)
+    }
 }
 
 #[derive(Debug)]
@@ -36,94 +78,24 @@ pub struct SoundcloudUrl {
     url: String,
 }
 
-pub fn init_db() -> Result<()> {
-    const SOUNDCLOUD_URL_TABLE_EXISTS_QUERY: &str =
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='soundcloudurl';";
-    const CREATE_SOUNDCLOUD_URL_TABLE_QUERY: &str = "CREATE TABLE soundcloudurl (
-        id    INTEGER PRIMARY KEY,
-        url   TEXT NOT NULL,
-        data  BLOB
-    )";
-    let conn = Connection::open(DB_PATH)?;
-    let mut stmt = conn.prepare(SOUNDCLOUD_URL_TABLE_EXISTS_QUERY)?;
-    // let exists_rows = stmt.query_map((), |row| row.get(0))?;
-    // conn.execute(SOUNDCLOUD_URL_TABLE_EXISTS_QUERY, ())?;
-    // conn.execute(
-    //     "CREATE TABLE soundcloudurl (
-    //         id    INTEGER PRIMARY KEY,
-    //         url   TEXT NOT NULL,
-    //         data  BLOB
-    //     )",
-    //     (), // empty list of parameters.
-    // )?;
-    return Ok(());
-}
-
-pub fn insert_soundcloud_url(url: &String) -> Result<()> {
-    let conn = Connection::open(DB_PATH)?;
-    conn.execute(
-        "CREATE TABLE soundcloudurl (
-            id    INTEGER PRIMARY KEY,
-            url   TEXT NOT NULL,
-            data  BLOB
-        )",
-        (), // empty list of parameters.
-    )?;
-    let soundcloud_url = SoundcloudUrl {
-        id: 0,
-        url: url.to_string(),
-    };
-    conn.execute(
-        "INSERT INTO soundcloudurl (url) VALUES (?1)",
-        (&soundcloud_url.url,),
-    )?;
-    return Ok(());
-}
-
-pub fn get_soundcloud_urls() -> Result<Vec<SoundcloudUrl>> {
-    let conn = Connection::open(DB_PATH)?;
-    let mut stmt = conn.prepare("SELECT id, url FROM soundcloudurl")?;
-    let soundcloud_url_iter = stmt.query_map([], |row| {
-        Ok(SoundcloudUrl {
-            id: row.get(0)?,
-            url: row.get(1)?,
-        })
-    })?;
-    let mut soundcloud_urls = Vec::new();
-    for soundcloud_url in soundcloud_url_iter {
-        soundcloud_urls.push(soundcloud_url?);
-    }
-    Ok(soundcloud_urls)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn test_init_db() {
-        let url = String::from("https://soundcloud.com/thisismyurl");
-        assert_eq!(insert_soundcloud_url(&url), Ok(()));
-    }
-
-    #[test]
-    fn test_insert_soundcloud_url() {
-        let url = String::from("https://soundcloud.com/thisismyurl");
-        assert_eq!(insert_soundcloud_url(&url), Ok(()));
-    }
-
-    #[test]
-    fn test_get_soundcloud_url() {
-        let url = String::from("https://soundcloud.com/thisismyurl");
-        assert_eq!(insert_soundcloud_url(&url), Ok(()));
-        let soundcloud_urls = get_soundcloud_urls().unwrap();
+    fn test_db_context() {
+        let conn = Connection::open(DB_PATH).unwrap();
+        let mut db_context = DbContext::new(&conn);
+        let _insert_row = db_context.insert_soundcloud_url(&String::from("testurl"));
+        let soundcloud_urls = db_context.get_soundcloud_urls().unwrap();
         print!("{:?}\n", soundcloud_urls);
     }
 
     #[test]
-    fn test_db_context() {
+    fn test_init_soundcloud_db() {
         let conn = Connection::open(DB_PATH).unwrap();
         let mut db_context = DbContext::new(&conn);
-        db_context.insert_soundcloud_url(&String::from("testurl"));
+        let result = db_context.init_soundcloud_db();
+        println!("{:?}", result);
     }
 }

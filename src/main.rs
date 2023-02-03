@@ -42,7 +42,7 @@ async fn get_soundcloud_urls() -> impl Responder {
 
 #[post("/soundcloud-url")]
 async fn add_soundcloud_url(json: web::Json<SoundcloudUrl>) -> HttpResponse {
-    db::insert_soundcloud_url(&json.url);
+    // db::insert_soundcloud_url(&json.url);
     HttpResponse::Ok().finish()
 }
 

@@ -1,6 +1,34 @@
-use rusqlite::{Connection, Result};
+use rusqlite::{Connection, Result, Statement};
 
 const DB_PATH: &str = "./music_server.db";
+
+pub struct DbContext<'a> {
+    pub conn: &'a Connection,
+    pub insert_soundcloud_url_statement: Option<Statement<'a>>,
+}
+
+impl<'a> DbContext<'a> {
+    pub fn new(conn: &'a Connection) -> Self {
+        return DbContext {
+            conn: conn,
+            insert_soundcloud_url_statement: None,
+        };
+    }
+
+    pub fn insert_soundcloud_url(&mut self, url: &String) -> Result<i64> {
+        if let None = &self.insert_soundcloud_url_statement {
+            let stmt = self
+                .conn
+                .prepare("INSERT INTO soundcloudurl (url) VALUES (:url)")?;
+            self.insert_soundcloud_url_statement = Some(stmt);
+        };
+        self.insert_soundcloud_url_statement
+            .as_mut()
+            .unwrap()
+            .execute_named(&[(":url", &url)])?;
+        return Ok(self.conn.last_insert_rowid());
+    }
+}
 
 #[derive(Debug)]
 pub struct SoundcloudUrl {
@@ -18,8 +46,8 @@ pub fn init_db() -> Result<()> {
     )";
     let conn = Connection::open(DB_PATH)?;
     let mut stmt = conn.prepare(SOUNDCLOUD_URL_TABLE_EXISTS_QUERY)?;
-    let exists_rows = stmt.query_map((), |row| row.get(0))?;
-    conn.execute(SOUNDCLOUD_URL_TABLE_EXISTS_QUERY, ())?;
+    // let exists_rows = stmt.query_map((), |row| row.get(0))?;
+    // conn.execute(SOUNDCLOUD_URL_TABLE_EXISTS_QUERY, ())?;
     // conn.execute(
     //     "CREATE TABLE soundcloudurl (
     //         id    INTEGER PRIMARY KEY,

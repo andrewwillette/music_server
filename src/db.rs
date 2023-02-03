@@ -123,6 +123,7 @@ mod tests {
     #[test]
     fn test_db_context() {
         let conn = Connection::open(DB_PATH).unwrap();
-        let db_context = DbContext::new(&conn);
+        let mut db_context = DbContext::new(&conn);
+        db_context.insert_soundcloud_url(&String::from("testurl"));
     }
 }

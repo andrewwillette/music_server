@@ -1,9 +1,16 @@
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
+use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
+use std::sync::{Arc, Mutex};
+
 pub mod db;
 
 static HOST: &str = "127.0.0.1";
 const PORT: u16 = 8080;
+
+struct AppState<'a> {
+    db: Arc<Mutex<db::DbContext<'a>>>,
+}
 
 #[derive(Serialize, Deserialize, Debug)]
 struct SoundcloudUrl {
@@ -23,8 +30,14 @@ impl SoundcloudUrls {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    let conn = Connection::open(db::DB_PATH).unwrap();
+    // let mut db_context = db::DbContext::new(&conn);
+    // let app_state = web::Data::new(AppState {
+    //     db: Arc::new(Mutex::from(db_context)),
+    // });
     HttpServer::new(|| {
         App::new()
+            // .app_data(app_state)
             .service(get_soundcloud_urls)
             .service(add_soundcloud_url)
     })

@@ -1,6 +1,6 @@
 use rusqlite::{Connection, Result, Statement};
 
-const DB_PATH: &str = "./music_server.db";
+pub const DB_PATH: &str = "./music_server.db";
 
 pub struct DbContext<'a> {
     pub conn: &'a Connection,
@@ -86,9 +86,10 @@ mod tests {
     fn test_db_context() {
         let conn = Connection::open(DB_PATH).unwrap();
         let mut db_context = DbContext::new(&conn);
-        let _insert_row = db_context.insert_soundcloud_url(&String::from("testurl"));
-        let soundcloud_urls = db_context.get_soundcloud_urls().unwrap();
-        print!("{:?}\n", soundcloud_urls);
+        let insert_row = db_context.insert_soundcloud_url(&String::from("testurl"));
+        assert!(insert_row.is_ok());
+        let soundcloud_urls = db_context.get_soundcloud_urls();
+        assert!(soundcloud_urls.is_ok());
     }
 
     #[test]
@@ -96,6 +97,6 @@ mod tests {
         let conn = Connection::open(DB_PATH).unwrap();
         let mut db_context = DbContext::new(&conn);
         let result = db_context.init_soundcloud_db();
-        println!("{:?}", result);
+        assert!(result.is_ok());
     }
 }

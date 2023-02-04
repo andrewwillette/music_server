@@ -24,9 +24,9 @@ impl SoundcloudUrls {
         for url in urls {
             soundcloud_urls.push(url.url);
         }
-        return SoundcloudUrls {
+        SoundcloudUrls {
             urls: soundcloud_urls,
-        };
+        }
     }
 }
 
@@ -35,7 +35,7 @@ async fn main() -> std::io::Result<()> {
     let conn = Connection::open(db::DB_PATH).unwrap();
     let mut db_context = db::DbContext::new(&conn);
     if let Err(result) = db_context.init_soundcloud_db() {
-        eprintln!("Error initializing database: {}", result);
+        eprintln!("Error initializing database: {result}");
     }
     HttpServer::new(|| {
         App::new()
@@ -51,11 +51,11 @@ async fn main() -> std::io::Result<()> {
 async fn get_soundcloud_urls() -> HttpResponse {
     let conn = Connection::open(db::DB_PATH).unwrap();
     let mut db_context = db::DbContext::new(&conn);
-    if let Some(soundcloud_urls) = db_context.get_soundcloud_urls().ok() {
+    if let Ok(soundcloud_urls) = db_context.get_soundcloud_urls() {
         let urls = SoundcloudUrls::from(soundcloud_urls);
-        return HttpResponse::Ok().json(&urls);
+        HttpResponse::Ok().json(&urls)
     } else {
-        return HttpResponse::InternalServerError().json("");
+        HttpResponse::InternalServerError().json("")
     }
 }
 
@@ -63,9 +63,9 @@ async fn get_soundcloud_urls() -> HttpResponse {
 async fn add_soundcloud_url(json: web::Json<SoundcloudUrl>) -> HttpResponse {
     let conn = Connection::open(db::DB_PATH).unwrap();
     let mut db_context = db::DbContext::new(&conn);
-    if let Ok(_) = db_context.insert_soundcloud_url(&json.url) {
-        return HttpResponse::Created().finish();
+    if db_context.insert_soundcloud_url(&json.url).is_ok() {
+        HttpResponse::Created().finish()
     } else {
-        return HttpResponse::InternalServerError().finish();
+        HttpResponse::InternalServerError().finish()
     }
 }

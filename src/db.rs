@@ -16,11 +16,11 @@ pub struct DbContext<'a> {
 
 impl<'a> DbContext<'a> {
     pub fn new(conn: &'a Connection) -> Self {
-        return DbContext {
+        DbContext {
             conn,
             insert_soundcloud_url_statement: None,
             get_soudncloud_urls_statement: None,
-        };
+        }
     }
 
     pub fn init_soundcloud_db(&mut self) -> Result<()> {
@@ -31,18 +31,18 @@ impl<'a> DbContext<'a> {
         url   TEXT NOT NULL,
         data  BLOB)";
         let stmt = Some(self.conn.prepare(SOUNDCLOUD_URL_TABLE_EXISTS_QUERY)?);
-        let row: Result<String> = stmt.unwrap().query_row([], |row| return row.get(0));
+        let row: Result<String> = stmt.unwrap().query_row([], |row| row.get(0));
         match row {
             Ok(_) => {}
             Err(_) => {
                 self.conn.execute(CREATE_SOUNDCLOUD_URL_TABLE_QUERY, ())?;
             }
         }
-        return Ok(());
+        Ok(())
     }
 
     pub fn insert_soundcloud_url(&mut self, url: &String) -> Result<i64> {
-        if let None = &self.insert_soundcloud_url_statement {
+        if self.insert_soundcloud_url_statement.is_none() {
             let stmt = self
                 .conn
                 .prepare("INSERT INTO soundcloudurl (url) VALUES (:url)")?;
@@ -56,7 +56,7 @@ impl<'a> DbContext<'a> {
     }
 
     pub fn get_soundcloud_urls(&mut self) -> Result<Vec<SoundcloudUrl>> {
-        if let None = &self.get_soudncloud_urls_statement {
+        if self.get_soudncloud_urls_statement.is_none() {
             let stmt = self.conn.prepare("SELECT id, url FROM soundcloudurl")?;
             self.get_soudncloud_urls_statement = Some(stmt);
         };

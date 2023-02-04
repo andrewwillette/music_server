@@ -2,6 +2,12 @@ use rusqlite::{Connection, Result, Statement};
 
 pub const DB_PATH: &str = "./music_server.db";
 
+#[derive(Debug)]
+pub struct SoundcloudUrl {
+    _id: i32,
+    _url: String,
+}
+
 pub struct DbContext<'a> {
     pub conn: &'a Connection,
     pub insert_soundcloud_url_statement: Option<Statement<'a>>,
@@ -60,8 +66,8 @@ impl<'a> DbContext<'a> {
             .unwrap()
             .query_map([], |row| {
                 Ok(SoundcloudUrl {
-                    id: row.get(0)?,
-                    url: row.get(1)?,
+                    _id: row.get(0)?,
+                    _url: row.get(1)?,
                 })
             })?;
         let mut soundcloud_urls = Vec::new();
@@ -70,12 +76,6 @@ impl<'a> DbContext<'a> {
         }
         Ok(soundcloud_urls)
     }
-}
-
-#[derive(Debug)]
-pub struct SoundcloudUrl {
-    id: i32,
-    url: String,
 }
 
 #[cfg(test)]

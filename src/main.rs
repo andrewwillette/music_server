@@ -18,7 +18,6 @@ struct SoundcloudUrls {
 }
 
 impl SoundcloudUrls {
-    // get api level soundcloud urls from db representation
     fn from(urls: Vec<db::SoundcloudUrl>) -> Self {
         let mut soundcloud_urls = Vec::new();
         for url in urls {

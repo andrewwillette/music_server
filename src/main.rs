@@ -1,4 +1,5 @@
-use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{get, post, web, App, HttpResponse, HttpServer};
+use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
 
 pub mod db;
@@ -17,13 +18,25 @@ struct SoundcloudUrls {
 }
 
 impl SoundcloudUrls {
-    fn from(urls: Vec<String>) -> Self {
-        return SoundcloudUrls { urls };
+    // get api level soundcloud urls from db representation
+    fn from(urls: Vec<db::SoundcloudUrl>) -> Self {
+        let mut soundcloud_urls = Vec::new();
+        for url in urls {
+            soundcloud_urls.push(url.url);
+        }
+        return SoundcloudUrls {
+            urls: soundcloud_urls,
+        };
     }
 }
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    let conn = Connection::open(db::DB_PATH).unwrap();
+    let mut db_context = db::DbContext::new(&conn);
+    if let Err(result) = db_context.init_soundcloud_db() {
+        eprintln!("Error initializing database: {}", result);
+    }
     HttpServer::new(|| {
         App::new()
             .service(get_soundcloud_urls)
@@ -35,19 +48,24 @@ async fn main() -> std::io::Result<()> {
 }
 
 #[get("/soundcloud-urls")]
-async fn get_soundcloud_urls() -> impl Responder {
-    let urls = get_db_soundcloud_urls();
-    let soundcloud_urls = SoundcloudUrls::from(urls);
-    return serde_json::to_string(&soundcloud_urls).unwrap();
+async fn get_soundcloud_urls() -> HttpResponse {
+    let conn = Connection::open(db::DB_PATH).unwrap();
+    let mut db_context = db::DbContext::new(&conn);
+    if let Some(soundcloud_urls) = db_context.get_soundcloud_urls().ok() {
+        let urls = SoundcloudUrls::from(soundcloud_urls);
+        return HttpResponse::Ok().json(&urls);
+    } else {
+        return HttpResponse::InternalServerError().json("");
+    }
 }
 
 #[post("/soundcloud-url")]
 async fn add_soundcloud_url(json: web::Json<SoundcloudUrl>) -> HttpResponse {
-    // db::insert_soundcloud_url(&json.url);
-    HttpResponse::Ok().finish()
-}
-
-fn get_db_soundcloud_urls() -> Vec<String> {
-    let soundcloud_urls = vec![String::from("hi"), String::from("goodbye")];
-    return soundcloud_urls;
+    let conn = Connection::open(db::DB_PATH).unwrap();
+    let mut db_context = db::DbContext::new(&conn);
+    if let Ok(_) = db_context.insert_soundcloud_url(&json.url) {
+        return HttpResponse::Created().finish();
+    } else {
+        return HttpResponse::InternalServerError().finish();
+    }
 }

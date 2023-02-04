@@ -5,7 +5,7 @@ pub const DB_PATH: &str = "./music_server.db";
 #[derive(Debug)]
 pub struct SoundcloudUrl {
     _id: i32,
-    _url: String,
+    pub url: String,
 }
 
 pub struct DbContext<'a> {
@@ -67,7 +67,7 @@ impl<'a> DbContext<'a> {
             .query_map([], |row| {
                 Ok(SoundcloudUrl {
                     _id: row.get(0)?,
-                    _url: row.get(1)?,
+                    url: row.get(1)?,
                 })
             })?;
         let mut soundcloud_urls = Vec::new();
